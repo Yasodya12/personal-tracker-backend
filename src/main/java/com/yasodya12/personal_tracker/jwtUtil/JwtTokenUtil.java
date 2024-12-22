@@ -6,6 +6,7 @@ import io.jsonwebtoken.Claims;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
+import java.util.List;
 
 @Component
 public class JwtTokenUtil {
@@ -17,12 +18,13 @@ public class JwtTokenUtil {
     private static final long EXPIRATION_TIME = 60 * 60 * 1000;
 
     // Generate a JWT token
-    public static String generateToken(String username) {
+    public static String generateToken(String username, List<String> roles) {
         return Jwts.builder()
-                .setSubject(username) // Set the username as subject claim
+                .setSubject(username) // Set the username as the subject
+                .claim("roles", roles) // Set the roles as a claim
                 .setIssuedAt(new Date()) // Set issued date
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME)) // Set expiration
-                .signWith(SignatureAlgorithm.HS256, SECRET_KEY) // Signing with HS512 algorithm
+                .signWith(SignatureAlgorithm.HS256, SECRET_KEY) // Signing with HS256 algorithm
                 .compact();
     }
 
@@ -48,5 +50,14 @@ public class JwtTokenUtil {
     // Get the username from the token
     public static String getUsernameFromToken(String token) {
         return getClaimsFromToken(token).getSubject();
+    }
+
+    public static List<String> getRolesFromToken(String token) {
+        Claims claims = Jwts.parser()
+                .setSigningKey(SECRET_KEY)
+                .parseClaimsJws(token)
+                .getBody();
+
+        return (List<String>) claims.get("roles"); // Extract roles from the token
     }
 }

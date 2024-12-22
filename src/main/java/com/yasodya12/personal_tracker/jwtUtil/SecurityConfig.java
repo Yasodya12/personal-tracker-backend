@@ -6,6 +6,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -15,23 +16,18 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Disable CSRF for testing
+                 .csrf(csrf -> csrf.disable()) // Disable CSRF
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/public/**").permitAll() // Public URLs
-                        .anyRequest().authenticated())
+                        .requestMatchers("/public/**").permitAll() // Allow public URLs
+                        .requestMatchers("/admin/**").hasRole("ADMIN") // Only accessible by ADMIN
+                        .requestMatchers("/user/**").hasRole("USER") // Only accessible by USER
+                        .anyRequest().authenticated()) // Protect all other endpoints
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Stateless sessions
-                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class); // Add JWT filter
+                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class) // Add JWT filter
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(customAuthenticationEntryPoint())); // Custom entry point
 
         return http.build();
-
-        // All other URLs require authentication
-
-//
-//                .formLogin(form -> form
-//                        .loginPage("/login").permitAll()
-//                        .defaultSuccessUrl("/home", true)) // Custom login page
-//                .logout(logout -> logout.logoutSuccessUrl("/login")); // Custom logout
-
 
     }
 
@@ -42,5 +38,13 @@ public class SecurityConfig {
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
         return new JwtAuthenticationFilter();
+    }
+
+    @Bean
+    public AuthenticationEntryPoint customAuthenticationEntryPoint() {
+        return (request, response, authException) -> {
+            // Redirect to login page if unauthenticated
+            response.sendRedirect("/login");
+        };
     }
 }
