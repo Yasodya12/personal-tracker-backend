@@ -17,6 +17,8 @@ public class JwtTokenUtil {
     // Token expiration time (e.g., 1 hour)
     private static final long EXPIRATION_TIME = 60 * 60 * 1000;
 
+    private static final long REFRESH_TOKEN_EXPIRATION = 7 * 24 * 60 * 60 * 1000;
+
     // Generate a JWT token
     public static String generateToken(String username, List<String> roles) {
         return Jwts.builder()
@@ -59,5 +61,14 @@ public class JwtTokenUtil {
                 .getBody();
 
         return (List<String>) claims.get("roles"); // Extract roles from the token
+    }
+
+    public static String generateRefreshToken(String username) {
+        return Jwts.builder()
+                .setSubject(username)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + REFRESH_TOKEN_EXPIRATION))
+                .signWith(SignatureAlgorithm.HS256, SECRET_KEY)
+                .compact();
     }
 }
